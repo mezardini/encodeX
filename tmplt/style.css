@@ -1,0 +1,11 @@
+form {
+  width: 50%;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+@media screen and (max-width: 1000px) {
+  .form_container {
+    padding-top: 3rem;
+  }
+}

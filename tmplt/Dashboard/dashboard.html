@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HiddenFrame | Dashboard</title>
+    <!-- CSS FILES -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Open+Sans&display=swap"
+      rel="stylesheet"
+    />
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet" />
+
+    <link href="../css/bootstrap-icons.css" rel="stylesheet" />
+
+    <link href="../css/templatemo-topic-listing.css" rel="stylesheet" />
+    <link rel="stylesheet" href="dashboard.css" />
+  </head>
+  <body>
+    <main>
+      <div class="sidebar shadow-lg">
+        <div class="closeBtn">&times;</div>
+        <div class="text-center">
+          <p>Credit Balance :</p>
+          <h3>20</h3>
+        </div>
+
+        <hr />
+
+        <p class="my-3 text-center">Availables Offers for Credits</p>
+        <div class="offers">
+          <div
+            class="offer_box shadow-sm p-3 mb-2 text-center"
+            style="border-radius: 10px"
+          >
+            <h5>$5</h5>
+            <li>20 Media Encoding</li>
+            <li>20 Media Decoding</li>
+            <li>Customer Support</li>
+
+            <a href="" class="my-3">Buy</a>
+          </div>
+          <div
+            class="offer_box shadow-sm p-3 mb-2 text-center"
+            style="border-radius: 10px"
+          >
+            <h5>$10</h5>
+            <li>50 Media Encoding</li>
+            <li>50 Media Decoding</li>
+            <li>Customer Support</li>
+
+            <a href="" class="my-3">Buy</a>
+          </div>
+          <div
+            class="offer_box shadow-sm p-3 mb-2 text-center"
+            style="border-radius: 10px"
+          >
+            <h5>$20</h5>
+            <li>120 Media Encoding</li>
+            <li>120 Media Decoding</li>
+            <li>Customer Support</li>
+
+            <a href="" class="my-3">Buy</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <nav class="navbar navbar-expand-lg shadow-sm">
+          <div class="container">
+            <a class="navbar-brand" href="../index.html">
+              <i class="bi-back"></i>
+              <span>Topic</span>
+            </a>
+
+            <div
+              class="d-block navbar-icon bi-person smoothscroll profile"
+            ></div>
+          </div>
+        </nav>
+
+        <form>
+          <div class="form">
+            <div class="text-details">
+              <p>Enter your text here to encryt :</p>
+              <textarea class="shadow-lg"></textarea>
+            </div>
+            <div class="arrow">></div>
+            <div class="img-details">
+              <p>Choose an image :</p>
+              <div class="preview">Image Preview</div>
+              <input type="file" class="encryption-img mb-3" />
+              <button id="submit">Submit</button>
+            </div>
+          </div>
+
+          <div class="bottom">
+            <button id="encode">Encode</button>
+            <button id="decode">Decode</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </body>
+  <!-- 
+  <script>
+    const imgPreview = document.querySelector(".img-preview");
+    const preview = document.querySelector(".preview");
+    const encryptionImg = document.querySelector(".encryption-img");
+    const btn = document.querySelector("#submit");
+
+    btn.addEventListener("click", () => {
+      if (encryptionImg.value) {
+        let img = `<img class="img-preview" src="" alt="" />`;
+        img.src = encryptionImg.value;
+        preview.innerHTML = img;
+      } else {
+        alert("Please choose a file");
+      }
+    });
+  </script> -->
+
+  <script>
+    const profile = document.querySelector(".profile");
+    const sidebar = document.querySelector(".sidebar");
+    const closeBtn = document.querySelector(".closeBtn");
+
+    profile.addEventListener("click", () => {
+      sidebar.style.left = 0;
+    });
+    closeBtn.addEventListener("click", () => {
+      sidebar.style.left = "-100%";
+    });
+  </script>
+</html>
