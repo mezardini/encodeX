@@ -1,5 +1,8 @@
+from drf_braces.forms.serializer_form import SerializerForm
 from rest_framework import serializers
-from .models import EncodedImage
+from .models import EncodedImage, UserCode
+from django import forms
+from drf_braces.serializers.form_serializer import FormSerializer
 
 
 class EncodedImageSerializer(serializers.ModelSerializer):
@@ -8,10 +11,27 @@ class EncodedImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'message']
 
 
+class UserCodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserCode
+        fields = ['code', 'user']
+
+
 class EmailSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=32)
     email = serializers.EmailField()
-    username = serializers.CharField(max_length=30)
+
+
+class EmailForm(SerializerForm):
+    class Meta(object):
+        serializer = EmailSerializer
 
 
 class CodeVerificationSerializer(serializers.Serializer):
-    code = serializers.CharField(max_length=5)
+    code = serializers.CharField(max_length=32)
+    email = serializers.EmailField()
+
+
+class CodeVerificationForm(SerializerForm):
+    class Meta(object):
+        serializer = CodeVerificationSerializer
