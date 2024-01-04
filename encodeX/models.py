@@ -4,14 +4,6 @@ from django.contrib.auth.models import (
 )
 
 
-class EncodedImage(models.Model):
-    image = models.ImageField(upload_to='images/')
-    message = models.TextField()
-
-    def __str__(self):
-        return f"EncodedImage id={self.id}"
-
-
 class MyUserManager(BaseUserManager):
     def create_user(self, email, username, password=None):
         """
@@ -93,3 +85,13 @@ class UserCode(models.Model):
     code = models.CharField(max_length=6)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     date_time = models.DateTimeField(null=True)
+
+
+class EncodedImage(models.Model):
+    image = models.ImageField(upload_to='media/')
+    message = models.TextField()
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
+    date_time = models.DateTimeField(null=True)
+
+    def __str__(self):
+        return f"EncodedImage id={self.user.email}"

@@ -6,6 +6,8 @@ from .models import EncodedImage, CustomUser, UserCode
 from .serializers import EncodedImageSerializer
 from .serializers import EmailSerializer, CodeVerificationSerializer, UserCodeSerializer
 from PIL import Image
+import io
+from django.core.files.images import get_image_dimensions
 from django.contrib.auth import login
 import random
 import string
@@ -25,30 +27,52 @@ import re
 from django.core.mail import send_mail
 
 
-def encode_image(image, message):
+from PIL import Image
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.files.images import get_image_dimensions
+import io
+from io import BytesIO
+from django.core.files.base import ContentFile
 
-    img = Image.open(image)
+
+def encode_image(encoded_image_id):
+    # Retrieve the EncodedImage instance from the database
+    encoded_image_instance = EncodedImage.objects.get(pk=encoded_image_id)
+
+    # Load the image from the database
+    image_data = encoded_image_instance.image.read()
 
     # Convert the message to hexadecimal
-    hex_message = message.encode('utf-8').hex()
+    hex_message = encoded_image_instance.message.encode('utf-8').hex()
 
-    # Ensure the image has enough space to store the message
-    if len(hex_message) > img.width * img.height:
-        raise ValueError("Message is too long for the given image size.")
+    # Append the message to the end of the image data
+    encoded_data = image_data + bytes.fromhex(hex_message)
 
-    # Encode the message in the least significant bit (LSB) of each pixel
-    data_index = 0
-    for y in range(img.height):
-        for x in range(img.width):
-            pixel = list(img.getpixel((x, y)))
-            for i in range(3):  # Iterate over RGB channels
-                if data_index < len(hex_message):
-                    pixel[i] = pixel[i] & ~1 | int(hex_message[data_index])
-                    data_index += 1
-            img.putpixel((x, y), tuple(pixel))
+    # Create a new image with the combined data
+    updated_image = Image.open(BytesIO(encoded_data))
 
-    # Return the encoded image
-    return img
+    # Save the updated image data to a new file-like object
+    updated_image_data = BytesIO()
+    updated_image.save(updated_image_data, format='PNG')
+    updated_image_data.seek(0)
+
+    # Update the EncodedImage model with the new content file and message
+    encoded_image_instance.image = InMemoryUploadedFile(
+        updated_image_data,
+        None,
+        f'encoded_image_{encoded_image_id}.png',
+        'image/png',
+        updated_image_data.tell(),
+        None
+    )
+
+    # Update the message in the model
+    encoded_image_instance.message = "New encoded message"
+
+    # Save the changes to the model
+    encoded_image_instance.save()
+
+    return encoded_image_instance
 
 
 def decode_image(img):
@@ -68,15 +92,22 @@ def decode_image(img):
 
 
 class EncodeImageView(generics.CreateAPIView):
+
     queryset = EncodedImage.objects.all()
     serializer_class = EncodedImageSerializer
 
-    def perform_create(self, serializer):
+    def perform_create(self, request):
+        # serializer = EncodedImageSerializer(data=request.data)
+        # if serializer.is_valid():
         image = self.request.data['image']
         message = self.request.data['message']
+        image_user = CustomUser.objects.get(email='seb@m.com')
+        encode_image_req = EncodedImage.objects.create(
+            image=image, message=message, user=image_user)
+        encode_image_req.save()
 
         # Encode the message in the image
-        encoded_image = encode_image(image, message)
+        encoded_image = encode_image(encode_image_req.id)
 
         user_credit = CustomUser.objects.get(username='mezardini')
 
@@ -130,25 +161,11 @@ class EmailValidatorandMailSender(generics.CreateAPIView):
         # if check_email:
         if CustomUser.objects.filter(email=email).exists():
             return True
+        else:
+            CustomUser.objects.create(email=email, username=username)
+            return True
         # else:
         #     return Response({'message': f'User does not exist.'})
-
-    # def verify_code(self, request, verification_code, email):
-    #     serializer = CodeVerificationSerializer(data=request.data)
-    #     if serializer.is_valid():
-    #         code = serializer.validated_data.get('code')
-    #         if code == verification_code:
-    #             user_token = generate_access_token(email)
-    #             response = Response()
-    #             response.set_cookie(key='access_token',
-    #                                 value=user_token, httponly=True)
-    #             response.data = {
-    #                 'access_token': user_token
-    #             }
-    #             print(response.data)
-    #             return Response({'message': f'User is verified.'}, response, status=status.HTTP_200_OK)
-    #         else:
-    #             return Response({'message': f'User is not verified.'}, status=status.HTTP_400_BAD_REQUEST)
 
     def post(self, request):
         serializer = EmailSerializer(data=request.data)
@@ -178,11 +195,6 @@ class EmailValidatorandMailSender(generics.CreateAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     pass
-
-
-# class RegisterUser(APIView):
-#     queryset = CustomUser.objects.all()
-#     serializer_class = EmailSerializer
 
 
 class CodeVerification(generics.CreateAPIView):

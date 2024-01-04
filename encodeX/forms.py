@@ -12,6 +12,10 @@ class CodeVerificationForm(forms.Form):
     email = forms.EmailField()
 
 
+class EncodeImageForm(forms.Form):
+    message = forms.CharField(max_length=100)
+    image = forms.ImageField()
+
 # class CodeSerializer(FormSerializer):
 #     class Meta(object):
 #         form = CodeVerificationForm

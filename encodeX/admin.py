@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 
-from encodeX.models import CustomUser as MyUser, UserCode
+from encodeX.models import CustomUser as MyUser, UserCode, EncodedImage
 
 
 class UserCreationForm(forms.ModelForm):
@@ -84,6 +84,7 @@ class UserAdmin(BaseUserAdmin):
 # Now register the new UserAdmin...
 admin.site.register(MyUser, UserAdmin)
 admin.site.register(UserCode)
+admin.site.register(EncodedImage)
 # ... and, since we're not using Django's built-in permissions,
 # unregister the Group model from admin.
 admin.site.unregister(Group)
