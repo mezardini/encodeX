@@ -228,5 +228,19 @@ class CodeVerification(generics.CreateAPIView):
         #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class DashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        user = request.user
+        # Customize the data you want to return in the response
+        data = {
+            'username': user.username,
+            'email': user.email,
+            # Add other user details as needed
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+
 class BuyReceipt(APIView):
     pass
