@@ -27,6 +27,14 @@ class EncodeImageForm(SerializerForm):
         serializer = EncodeImageSerializer
 
 
+class DecodeImageSerializer(serializers.Serializer):
+    image = serializers.ImageField()
+
+
+class DecodeImageForm(SerializerForm):
+    class Meta(object):
+        serializer = EncodeImageSerializer
+
 class EmailSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=32)
     email = serializers.EmailField()

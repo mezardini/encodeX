@@ -4,11 +4,11 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from .models import EncodedImage, CustomUser, UserCode
 from .serializers import EncodedImageSerializer
-from .serializers import EmailSerializer, CodeVerificationSerializer, UserCodeSerializer
+from .serializers import EmailSerializer, CodeVerificationSerializer, UserCodeSerializer, DecodeImageSerializer
 from PIL import Image
 import io
 from django.core.files.images import get_image_dimensions
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 import random
 import string
 from rest_framework.authentication import TokenAuthentication
@@ -35,6 +35,9 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 
 
+import binascii
+
+
 def encode_image(encoded_image_id):
     # Retrieve the EncodedImage instance from the database
     encoded_image_instance = EncodedImage.objects.get(pk=encoded_image_id)
@@ -43,7 +46,8 @@ def encode_image(encoded_image_id):
     image_data = encoded_image_instance.image.read()
 
     # Convert the message to hexadecimal
-    hex_message = encoded_image_instance.message.encode('utf-8').hex()
+    encode_message_id = str(encoded_image_instance.message_id)
+    hex_message = encode_message_id.encode('utf-8').hex()
 
     # Append the message to the end of the image data
     encoded_data = image_data + bytes.fromhex(hex_message)
@@ -75,20 +79,21 @@ def encode_image(encoded_image_id):
     return encoded_image_instance
 
 
-def decode_image(img):
-    # Convert the image to grayscale for simplicity
-    img = img.convert('L')
+def decode_image(encoded_image_data):
+    # Open the image
+    image = Image.open(BytesIO(encoded_image_data))
 
-    binary_message = ""
-    for y in range(img.height):
-        for x in range(img.width):
-            pixel = img.getpixel((x, y))
-            binary_message += str(pixel & 1)
+    # Extract the message from the last part of the image data
+    # Assuming the message is stored in hexadecimal format
+    message_length = len(encoded_image_data) // 4
+    hex_message_bytes = encoded_image_data[-message_length:]
 
-    # Convert binary message to characters
-    message = ''.join(chr(int(binary_message[i:i + 8], 2))
-                      for i in range(0, len(binary_message), 8))
-    return message
+    # Decode the hexadecimal message to retrieve the original message
+    original_message = bytes.fromhex(
+        hex_message_bytes.decode('utf-8')).decode('utf-8')
+
+    return original_message
+
 
 
 class EncodeImageView(generics.CreateAPIView):
@@ -102,8 +107,9 @@ class EncodeImageView(generics.CreateAPIView):
         image = self.request.data['image']
         message = self.request.data['message']
         image_user = CustomUser.objects.get(email='seb@m.com')
+        random_integer = random.randint(10000, 99999)
         encode_image_req = EncodedImage.objects.create(
-            image=image, message=message, user=image_user)
+            image=image, message=message, user=image_user, message_id=random_integer)
         encode_image_req.save()
 
         # Encode the message in the image
@@ -118,12 +124,31 @@ class EncodeImageView(generics.CreateAPIView):
         return Response({'image': encoded_image}, status=status.HTTP_201_CREATED)
 
 
+def extract_encoded_hex_from_image(image_data):
+    # Check if the image data contains encoded information
+    start_marker = b'ENCODED_INFO_START'
+    end_marker = b'ENCODED_INFO_END'
+
+    if start_marker in image_data and end_marker in image_data:
+        start_index = image_data.find(start_marker) + len(start_marker)
+        end_index = image_data.find(end_marker)
+        hex_message_bytes = image_data[start_index:end_index]
+
+        # Decode the hexadecimal message to retrieve the original message
+        original_message = bytes.fromhex(
+            hex_message_bytes.decode('utf-8')).decode('utf-8')
+        print(original_message)
+        return original_message
+    else:
+        # If no encoded information is found, return None
+        return None
+
+
 class DecodeImageView(generics.CreateAPIView):
-    queryset = EncodedImage.objects.all()
-    serializer_class = EncodedImageSerializer
+    serializer_class = DecodeImageSerializer
     parser_classes = [MultiPartParser]
 
-    def create(self, request, *args, **kwargs):
+    def create(self, request):
         image = request.data.get('image')
 
         # Ensure 'image' field is present in the request
@@ -132,14 +157,15 @@ class DecodeImageView(generics.CreateAPIView):
 
         # Decode the message from the image
         decoded_message = decode_image(image)
+        print(decoded_message)
 
-        # Create a new instance with the decoded message
-        serializer = self.get_serializer(data={'message': decoded_message})
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+        # # Create a new instance with the decoded message
+        # serializer = self.get_serializer(data={'message': decoded_message})
+        # serializer.is_valid(raise_exception=True)
+        # self.perform_create(serializer)
 
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=201, headers=headers)
+        # headers = self.get_success_headers(serializer.data)
+        return Response(decoded_message)
 
 
 class EmailValidatorandMailSender(generics.CreateAPIView):
@@ -198,34 +224,36 @@ class EmailValidatorandMailSender(generics.CreateAPIView):
 
 
 class CodeVerification(generics.CreateAPIView):
-
     serializer_class = CodeVerificationSerializer
 
     def post(self, request):
-        # serializer = CodeVerificationSerializer(data=request.data)
-        # if serializer.is_valid():
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        code = self.request.data['code']
-        email = self.request.data['email']
-        user = CustomUser.objects.get(email=email)
-        verification_query = UserCode.objects.filter(
-            user=user).latest('id')
-        verification_code = verification_query.code
-        if code == verification_code:
-            user_token = generate_access_token(email)
-            response = Response()
-            response.set_cookie(key='access_token',
-                                value=user_token, httponly=True)
-            response.data = {
-                'access_token': user_token
-            }
-            print(response.data)
-            return Response(response.data, status=status.HTTP_200_OK)
-        else:
-            return Response({'message': f'User is not verified.'}, status=status.HTTP_400_BAD_REQUEST)
+        code = serializer.validated_data['code']
+        email = serializer.validated_data['email']
 
-        # else:
-        #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = CustomUser.objects.get(email=email)
+            verification_query = UserCode.objects.filter(
+                user=user).latest('id')
+            verification_code = verification_query.code
+
+            if code == verification_code:
+
+                # Generate and return the access token
+                user_token = generate_access_token(email)
+                response = Response({'access_token': user_token})
+                response.set_cookie(key='access_token',
+                                    value=user_token, httponly=True)
+
+                login(request, user)
+                return response
+            else:
+                return Response({'message': 'User is not verified.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        except CustomUser.DoesNotExist:
+            return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class DashboardView(APIView):
@@ -237,10 +265,23 @@ class DashboardView(APIView):
         data = {
             'username': user.username,
             'email': user.email,
+            'image-credit': user.credit,
             # Add other user details as needed
         }
         return Response(data, status=status.HTTP_200_OK)
 
 
-class BuyReceipt(APIView):
+class LogoutView(APIView):
+    def post(self, request):
+        # Log the user out
+        logout(request)
+
+        # Clear the access token cookie
+        response = Response({'message': 'User logged out successfully.'})
+        response.delete_cookie('access_token')
+
+        return response
+
+
+class BuyCreditView(APIView):
     pass

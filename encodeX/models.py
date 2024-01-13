@@ -84,14 +84,18 @@ class CustomUser(AbstractBaseUser):
 class UserCode(models.Model):
     code = models.CharField(max_length=6)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    date_time = models.DateTimeField(null=True)
+    date_time = models.DateTimeField(auto_now_add=True, null=True)
+
+    def __str__(self):
+        return f"User ={self.user.email}"
 
 
 class EncodedImage(models.Model):
     image = models.ImageField(upload_to='media/')
     message = models.TextField()
+    message_id = models.IntegerField(null=True, unique=True)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True)
-    date_time = models.DateTimeField(null=True)
+    date_time = models.DateTimeField(auto_now_add=True, null=True)
 
     def __str__(self):
         return f"EncodedImage id={self.user.email}"

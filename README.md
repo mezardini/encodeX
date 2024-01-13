@@ -54,7 +54,7 @@ encodeX is a Django Rest Framework (DRF) project that provides API endpoints for
 
 Encode a Message:
 
-POST /api/encode/: Upload an image and a message to encode the message in the image.
+POST /api/encodeimage/: Upload an image and a message to encode the message in the image.
 Decode an Image:
 
-POST /api/decode/: Upload an encoded image to decode the message.
+POST /api/decodeimage/: Upload an encoded image to decode the message.

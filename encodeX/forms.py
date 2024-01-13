@@ -16,6 +16,10 @@ class EncodeImageForm(forms.Form):
     message = forms.CharField(max_length=100)
     image = forms.ImageField()
 
+
+class DecodeImageForm(forms.Form):
+    image = forms.ImageField()
+
 # class CodeSerializer(FormSerializer):
 #     class Meta(object):
 #         form = CodeVerificationForm
